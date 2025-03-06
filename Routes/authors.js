@@ -1,23 +1,9 @@
 const express = require("express");
 const Joi = require("joi");
 const router = express.Router();
+const mongoose = require("mongoose");
+const { Author } = require("../models/Author");
 
-const authors = [
-  {
-    id: 1,
-    firstName: "karim",
-    lastName: "brahimi",
-    nationality: "algeria",
-    image: "default-img.png",
-  },
-  {
-    id: 2,
-    firstName: "shin",
-    lastName: "nozen",
-    nationality: "lucia",
-    image: "default-img.png",
-  },
-];
 /**
  * @desc  get all authors
  * @route /api/books
@@ -26,8 +12,16 @@ const authors = [
  *
  **/
 
-router.get("/", (req, res) => {
-  res.json(authors);
+router.get("/", async (req, res) => {
+  try {
+    const authorsList = await Author.find();
+    // .select().sort()
+
+    res.status(200).json(authorsList);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 /**
@@ -37,13 +31,22 @@ router.get("/", (req, res) => {
  * @access public
  *
  **/
-router.get("/:id", (req, res) => {
-  const AuthorID = req.params.id;
-  const author = authors.find((author) => author.id === parseInt(AuthorID));
-  if (!author) {
-    res.status(404).json({ message: "author not found" });
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  // Validate ObjectId before querying
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid author ID" });
   }
-  res.status(200).json(author);
+
+  try {
+    const author = await Author.findById(id);
+    if (!author) {
+      return res.status(404).json({ message: "Author not found" });
+    }
+    res.status(200).json(author);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 });
 
 /**
@@ -53,24 +56,30 @@ router.get("/:id", (req, res) => {
  * @access public
  *
  **/
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { error } = validateAuthorCreation(req.body);
 
   if (error) {
     res.status(400).json(error.details[0].message);
+  } else {
+    try {
+      const author = new Author({
+        // author is an object of the Author classs
+        // id: authors.length + 1,  the data base add the id automaticaly
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        nationality: req.body.nationality,
+        image: req.body.image,
+      });
+
+      const result = await author.save();
+
+      res.status(201).json(result);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "something went wrong" });
+    }
   }
-  else{
-    const author = {
-      id: authors.length + 1,
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      nationality: req.body.nationality,
-      image: "default-img.png",
-    };
-    authors.push(author);
-    res.status(202).json(author);
-  }
-  
 });
 
 /**
@@ -81,18 +90,31 @@ router.post("/", (req, res) => {
  *
  **/
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
+  const { id } = req.params;
+  // validate update body
   const { error } = validateAuthorUpdate(req.body);
   if (error) {
     res.status(400).json(error.details[0].message);
   }
-
-  const authorId = parseInt(req.params.id);
-  const author = authors.find((author) => author.id === authorId);
-  if (!author) {
-    res.status(404).json({ message: "author not found" });
+  // Validate ObjectId before querying
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid author ID" });
   }
-  res.status(200).json({ message: "author was updated" });
+  try {
+    const author = await Author.findByIdAndUpdate(id, {
+      $set: {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        nationality: req.body.nationality,
+        image: req.body.image,
+      },
+    },{new:true});
+
+    res.status(200).json(author);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 });
 
 /**
@@ -103,33 +125,31 @@ router.put("/:id", (req, res) => {
  *
  **/
 
-router.delete("/:id",(req,res)=>{
-
+router.delete("/:id", (req, res) => {
   const authorId = parseInt(req.params.id);
   const author = authors.find((author) => author.id === authorId);
   if (!author) {
     res.status(404).json({ message: "author not found" });
   }
   res.status(200).json({ message: "author was delted" });
-
-})
+});
 // functions
 function validateAuthorCreation(obj) {
   const schema = Joi.object({
-    firstName: Joi.string().trim().min(5).max(200).required(),
-    lastName: Joi.string().trim().min(3).max(200).required(),
-    nationality: Joi.string().trim().min(3).max(200).required(),
-    // image: Joi.string().trim().min(3).max(200).required(),
+    firstName: Joi.string().trim().min(4).max(200).required(),
+    lastName: Joi.string().trim().min(2).max(200).required(),
+    nationality: Joi.string().trim().min(2).max(200).required(),
+    image: Joi.string().trim().min(3).max(200),
   });
   return ({ error } = schema.validate(obj));
 }
 
 function validateAuthorUpdate(obj) {
   const schema = Joi.object({
-    firstName: Joi.string().trim().min(5).max(200),
+    firstName: Joi.string().trim().min(4).max(200),
     lastName: Joi.string().trim().min(3).max(200),
-    nationality: Joi.string().trim().min(3).max(200),
-    // image: Joi.string(),
+    nationality: Joi.string().trim().min(2).max(200),
+    image: Joi.string(),
   });
   return ({ error } = schema.validate(obj));
 }
