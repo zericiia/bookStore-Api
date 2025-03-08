@@ -1,8 +1,12 @@
 const express = require("express");
-const Joi = require("joi");
 const router = express.Router();
+const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
-const { Author } = require("../models/Author");
+const {
+  Author,
+  validateAuthorUpdate,
+  validateAuthorCreation,
+} = require("../models/Author");
 
 /**
  * @desc  get all authors
@@ -31,23 +35,20 @@ router.get("/", async (req, res) => {
  * @access public
  *
  **/
-router.get("/:id", async (req, res) => {
-  const { id } = req.params;
-  // Validate ObjectId before querying
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid author ID" });
-  }
-
-  try {
-    const author = await Author.findById(id);
-    if (!author) {
-      return res.status(404).json({ message: "Author not found" });
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    // Validate ObjectId before querying
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid author ID" });
     }
+    //
+    const author = await Author.findById(id);
+    if (!author) return res.status(404).json({ message: "Author not found" });
     res.status(200).json(author);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+  })
+);
 
 /**
  * @desc  create an author
@@ -60,7 +61,10 @@ router.post("/", async (req, res) => {
   const { error } = validateAuthorCreation(req.body);
 
   if (error) {
-    res.status(400).json(error.details[0].message);
+    return res.status(400).json({
+      message: "Validation failed",
+      errors: error.details.map((detail) => detail.message),
+    });
   } else {
     try {
       const author = new Author({
@@ -76,8 +80,8 @@ router.post("/", async (req, res) => {
 
       res.status(201).json(result);
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "something went wrong" });
+      console.error("Database error:", error);
+      res.status(500).json({ message: "An internal server error occurred" });
     }
   }
 });
@@ -102,14 +106,18 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "Invalid author ID" });
   }
   try {
-    const author = await Author.findByIdAndUpdate(id, {
-      $set: {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        nationality: req.body.nationality,
-        image: req.body.image,
+    const author = await Author.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+          nationality: req.body.nationality,
+          image: req.body.image,
+        },
       },
-    },{new:true});
+      { new: true }
+    );
 
     res.status(200).json(author);
   } catch (error) {
@@ -125,32 +133,29 @@ router.put("/:id", async (req, res) => {
  *
  **/
 
-router.delete("/:id", (req, res) => {
-  const authorId = parseInt(req.params.id);
-  const author = authors.find((author) => author.id === authorId);
-  if (!author) {
-    res.status(404).json({ message: "author not found" });
-  }
-  res.status(200).json({ message: "author was delted" });
-});
-// functions
-function validateAuthorCreation(obj) {
-  const schema = Joi.object({
-    firstName: Joi.string().trim().min(4).max(200).required(),
-    lastName: Joi.string().trim().min(2).max(200).required(),
-    nationality: Joi.string().trim().min(2).max(200).required(),
-    image: Joi.string().trim().min(3).max(200),
-  });
-  return ({ error } = schema.validate(obj));
-}
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
 
-function validateAuthorUpdate(obj) {
-  const schema = Joi.object({
-    firstName: Joi.string().trim().min(4).max(200),
-    lastName: Joi.string().trim().min(3).max(200),
-    nationality: Joi.string().trim().min(2).max(200),
-    image: Joi.string(),
-  });
-  return ({ error } = schema.validate(obj));
-}
+  // Validate ObjectId before querying
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid author ID" });
+  }
+
+  try {
+    const deletedAuthor = await Author.findByIdAndDelete(id);
+
+    if (!deletedAuthor) {
+      return res.status(404).json({ message: "Author was not found." });
+    }
+
+    return res
+      .status(200)
+      .json({ message: `Author deleted: ${deletedAuthor}` });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+});
+
 module.exports = router;
