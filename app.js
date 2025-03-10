@@ -1,11 +1,13 @@
 const express = require("express");
-
 const mongoose = require("mongoose");
 const bookPath = require("./Routes/books");
 const authorsPath = require("./Routes/authors");
+const logger = require("./middlewares/logger");
+const dotenv = require("dotenv");
+dotenv.config();
 // conn to db
 mongoose
-  .connect("mongodb://localhost/bookStoreDB")
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log(`connected to db succefully`);
   })
@@ -18,10 +20,17 @@ const app = express();
 // json middleware
 app.use(express.json());
 
+// custom middleware
+app.use(logger);
+
 // ROUTES
 app.use("/api/books", bookPath);
 
 app.use("/api/authors", authorsPath);
 
-const Port = 5000;
-app.listen(Port, () => console.log(`server is running on port ${Port}`));
+const Port = process.env.PORT;
+app.listen(Port, () =>
+  console.log(
+    `server is running in ${process.env.NODE_ENV} mode on port ${Port}`
+  )
+);
