@@ -1,21 +1,15 @@
 const express = require("express");
-const Joi = require("joi");
 const router = express.Router();
+const asyncHandler = require("express-async-handler");
+const mongoose = require("mongoose");
+// const Redis = require("ioredis");
+// const redis = new Redis(); // Connect to local Redis instance
+const {
+  Book,
+  validateBookCreation,
+  validateBookUpdate,
+} = require("../models/Book");
 
-const books = [
-  {
-    id: 1,
-    title: "black swan",
-    price: 20,
-    author: "karim brahimi",
-  },
-  {
-    id: 2,
-    title: "niggas in paris",
-    price: 100,
-    author: "kanye west",
-  },
-];
 /**
  * @desc  get all books
  * @route /api/books
@@ -24,9 +18,14 @@ const books = [
  *
  **/
 
-router.get("/", (req, res) => {
-  res.status(200).json(books);
-});
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const bookList = await Book.find();
+    res.status(200).json(bookList);
+  })
+);
+
 /**
  * @desc  get book  by id
  * @route /api/books/:id
@@ -34,13 +33,23 @@ router.get("/", (req, res) => {
  * @access public
  *
  **/
-router.get("/:id", (req, res) => {
-  const bookId = req.params.id;
-  const book = books.find((book) => book.id === parseInt(bookId));
-  if (!book) {
-    res.status(404).json({ message: "book not found" });
-  } else {
-    res.status(200).json(book);
+router.get("/:id", async (req, res) => {
+  // Validate ObjectId before querying
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid Book ID" });
+  }
+  //
+  try {
+    const book = await Book.findById(id).populate("author",["firstName"]);
+    if (book) {
+      return res.status(200).json(book);
+    } else {
+      return res.status(404).json({ message: "Book not found" });
+    }
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ message: "An internal server error occurred" });
   }
 });
 
@@ -51,23 +60,29 @@ router.get("/:id", (req, res) => {
  * @access public
  *
  **/
-router.post("/", (req, res) => {
-  // schema
-  const { error } = validateCreateBook(req.body);
-
+router.post("/", async (req, res) => {
+  // schema validation
+  const { error } = validateBookCreation(req.body);
   if (error) {
-    return res.status(400).json(error.details[0].message);
+    return res.status(400).json({
+      message: "Validation failed",
+      errors: error.details.map((detail) => detail.message),
+    });
   }
-
-  const book = {
-    id: books.length + 1,
-    title: req.body.title,
-    price: req.body.price,
-    author: req.body.author,
-  };
-
-  books.push(book);
-  res.status(201).json(book); // 201 => created sucessfully
+  //
+  try {
+    const book = new Book({
+      title: req.body.title,
+      author: req.body.author,
+      price: req.body.price,
+      cover: req.body.cover,
+    });
+    const result = await book.save();
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ message: "An internal server error occurred" });
+  }
 });
 
 /**
@@ -77,17 +92,39 @@ router.post("/", (req, res) => {
  * @access public
  *
  **/
-router.put("/:id", (req, res) => {
-  const { error } = validateEditBook(req.body);
-
-  if (error) {
-    return res.status(400).json(error.details[0].message);
+router.put("/:id", async (req, res) => {
+  // Validate ObjectId before querying
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid book ID" });
   }
-  const book = books.find((b) => b.id === parseInt(req.params.id));
-  if (!book) {
-    res.status(404).json({ message: "book not found" });
-  } else {
-    res.status(200).json({ message: "book has been updated" });
+  // book validation
+  const { error } = validateBookUpdate(req.body);
+  if (error) {
+    return res.status(400).json({
+      message: "Validation failed",
+      errors: error.details.map((detail) => detail.message),
+    });
+  }
+  //start query
+  try {
+    const book = await Book.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          title: req.body.title,
+          author: req.body.author,
+          price: req.body.price,
+          cover: req.body.cover,
+        },
+      },
+      { new: true }
+    );
+    if (!book) return res.status(404).json({ message: "book was not found." });
+    res.json(book).status(200);
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ message: "An internal server error occurred" });
   }
 });
 
@@ -98,32 +135,23 @@ router.put("/:id", (req, res) => {
  * @access public
  *
  **/
-router.delete("/:id", (req, res) => {
-  // chek if book exist
-  const book = books.find((b) => b.id === parseInt(req.params.id));
-  if (!book) {
-    res.status(404).json({ message: "book not found" });
-  } else {
-    res.status(200).json({ message: "book has been Deleted" });
+router.delete("/:id", async (req, res) => {
+  // Validate id
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid book ID" });
+  }
+  // start query delete
+  try {
+    const book = await Book.findByIdAndDelete(id);
+    if (!book) {
+      return res.status(404).json({ message: "book was not found." });
+    }
+    return res.status(200).json({ message: `book deleted: ${book}` });
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ message: "An internal server error occurred" });
   }
 });
 
-function validateCreateBook(obj) {
-  const schema = Joi.object({
-    title: Joi.string().trim().min(3).max(200).required(),
-    price: Joi.number().min(0).required(),
-    author: Joi.string().trim().min(3).max(200).required(),
-  });
-  return ({ error } = schema.validate(obj));
-}
-
-function validateEditBook(obj) {
-  const schema = Joi.object({
-    title: Joi.string().trim().min(3).max(200),
-    price: Joi.number().min(0),
-    author: Joi.string().trim().min(3).max(200),
-  });
-  return ({ error } = schema.validate(obj));
-}
-// export
 module.exports = router;
