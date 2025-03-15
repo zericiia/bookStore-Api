@@ -8,6 +8,8 @@ const logger = require("./middlewares/logger");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
 const dotenv = require("dotenv");
 
+
+
 dotenv.config();
 
 // Connect to MongoDB
@@ -32,8 +34,9 @@ app.use(express.json());
 // Custom middleware
 app.use(logger);
 
+
 // Login route form
-app.get("/", (req, res) => {
+app.get("/" , (req, res) => {
   res.sendFile(path.resolve(__dirname, "pages", "login.html"));
 });
 
