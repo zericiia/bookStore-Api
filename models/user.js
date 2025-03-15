@@ -29,17 +29,9 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timeseries: true }
+  { timestamps: true }
 );
-// validate Register user
-function validateRegisterUser(obj) {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    username: Joi.string().trim().min(2).max(200).required(),
-    password: Joi.string().trim().min(6).required(),
-    isAdmin: Joi.bool(),
-  });
-}
+
 // validate update
 function validateUpdateUser(obj) {
   const schema = Joi.object({
@@ -50,6 +42,16 @@ function validateUpdateUser(obj) {
   });
   return schema.validate(obj);
 }
+// validate Register user
+function validateRegisterUser(obj) {
+    const schema = Joi.object({
+      email: Joi.string().trim().min(5).max(100).required().email(),
+      username: Joi.string().trim().min(2).max(200).required(),
+      password: Joi.string().trim().min(6).required(),
+      isAdmin: Joi.bool(),
+    });
+    return schema.validate(obj);
+  }
 // validate Login user
 function validateLoginUser(obj) {
   const schema = Joi.object({
