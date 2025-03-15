@@ -38,7 +38,6 @@
     </div>
 
     <script>
-      // Handle form submission
       document
         .getElementById("login-form")
         .addEventListener("submit", async (e) => {
@@ -59,22 +58,32 @@
               }
             );
 
-            const data = await response.json();
-
+            // Check if the response is OK (status code 2xx)
             if (response.ok) {
-              // Save token to localStorage or sessionStorage
-              localStorage.setItem("token", data.token);
+              const data = await response.json();
+              localStorage.setItem("token", data.token); 
               alert("Login successful! Here is your Flag : ........");
-              //   window.location.href = '/dashboard'; // Redirect to dashboard
+              // window.location.href = '/dashboard'; 
             } else {
-              // Combine the message and errors (if they exist) into a single string
-              let errorMessage = data.message || "Login failed";
-              if (data.errors) {
-                errorMessage += "\n" + data.errors.join("\n"); // Add each error on a new line
+              // Handle HTTP errors (e.g., 400, 429, 500)
+              let errorMessage = "Login failed";
+
+              try {
+                // Attempt to parse the error response as JSON
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorMessage;
+                if (errorData.errors) {
+                  errorMessage += "\n" + errorData.errors.join("\n");
+                }
+              } catch (error) {
+                // If the response is not JSON, use the status text
+                errorMessage = response.statusText || errorMessage;
               }
-              alert(errorMessage); // Show the combined error message
+
+              alert(errorMessage); 
             }
           } catch (error) {
+            // Handle network errors or unexpected issues
             console.error("Error:", error);
             alert("An error occurred. Please try again.");
           }
