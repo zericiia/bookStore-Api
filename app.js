@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const bookPath = require("./Routes/books");
 const authorsPath = require("./Routes/authors");
 const authPath = require("./Routes/auth");
+const authPathV = require("./Routes/authV");
 const logger = require("./middlewares/logger");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
 const dotenv = require("dotenv");
@@ -44,6 +45,8 @@ app.get("/" , (req, res) => {
 app.use("/api/books", bookPath);
 app.use("/api/authors", authorsPath);
 app.use("/api/auth", authPath);
+// vurnauble
+app.use("/api/authV", authPathV);
 
 // Error handler middleware
 app.use(notFound);
