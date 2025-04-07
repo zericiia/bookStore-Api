@@ -12,7 +12,7 @@ const {
 // Configure rate limiting for login
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per windowMs
+  max: 10, // Limit each IP to 5 login requests per windowMs
   message: "Too many login attempts, please try again after 15 minutes",
 });
 
@@ -56,7 +56,8 @@ router.post("/register", async (req, res) => {
     const result = await user.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id,isAdmin: user.isAdmin }, process.env.JWT_SECRET, );
+    // { expiresIn: '1h' }
 
     // Exclude password from response
     const { password, ...userData } = result._doc;
@@ -101,7 +102,8 @@ router.post("/login", loginLimiter, async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id ,isAdmin: user.isAdmin }, process.env.JWT_SECRET, );
+    //{ expiresIn: '1h' }
 
     // Exclude password from response
     const { password, ...userData } = user._doc;
