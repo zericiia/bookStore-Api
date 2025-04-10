@@ -37,4 +37,21 @@ router.put("/:id",verifyTokenAndAuthorizaton, async (req, res) => {
   res.status(200).json(UpdatedUser);
 });
 
+/**
+ * @desc  Get All Users
+ * @route /api/user
+ * @method get
+ * @access private (only admin)
+ *
+ **/
+
+router.get("/",verifyTokenAndAdmin, async (req,res)=>{
+  try {
+    const AllUsers = await User.find();
+    res.status(200).json(AllUsers);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+})
 module.exports = router;
