@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const { User, validateUpdateUser } = require("../models/user");
-const { verifyToken } = require("../middlewares/verifyToken");
+const { verifyToken,verifyTokenAndAuthorizaton,verifyTokenAndAdmin } = require("../middlewares/verifyToken");
 /**
  * @desc  Update User
  * @route /api/user:id
@@ -10,12 +10,9 @@ const { verifyToken } = require("../middlewares/verifyToken");
  * @access private
  *
  **/
-router.put("/:id",verifyToken, async (req, res) => {
+router.put("/:id",verifyTokenAndAuthorizaton, async (req, res) => {
 
-    // fix the borken access
-    if(req.user.id !== req.params.id){
-        return res.status(403).json({message: "unotherised access"})
-    }
+
   const { error } = validateUpdateUser(req.body);
   if (error) {
     return res.status(400).json(error.details[0].message);

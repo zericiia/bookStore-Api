@@ -12,7 +12,7 @@ const {
 // Configure rate limiting for login
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 5 login requests per windowMs
+  max: 3, // Limit each IP to 5 login requests per windowMs
   message: "Too many login attempts, please try again after 15 minutes",
 });
 
@@ -49,7 +49,6 @@ router.post("/register", async (req, res) => {
       email: req.body.email,
       username: req.body.username,
       password: req.body.password,
-      isAdmin: req.body.isAdmin || false,
     });
 
     // Save user to DB
