@@ -21,7 +21,17 @@ const {
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const bookList = await Book.find();
+    const { minPrice, maxPrice } = req.query;
+    let bookList;
+    // 
+    if (minPrice && maxPrice) {
+      bookList = await Book.find({
+        price: { $gte: minPrice, $lte: maxPrice },
+      }).populate("author", ["firstName","lastName"]);
+    } else {
+      bookList = await Book.find().populate("author", ["firstName","lastName"]);
+    }
+
     res.status(200).json(bookList);
   })
 );
@@ -41,7 +51,7 @@ router.get("/:id", async (req, res) => {
   }
   //
   try {
-    const book = await Book.findById(id).populate("author",["firstName"]);
+    const book = await Book.findById(id).populate("author", ["firstName"]);
     if (book) {
       return res.status(200).json(book);
     } else {
