@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
 const { User, validateUpdateUser } = require("../models/user");
-const { verifyToken,verifyTokenAndAuthorizaton,verifyTokenAndAdmin } = require("../middlewares/verifyToken");
+const {
+  verifyToken,
+  verifyTokenAndAuthorizaton,
+  verifyTokenAndAdmin,
+} = require("../middlewares/verifyToken");
 /**
  * @desc  Update User
  * @route /api/user:id
@@ -10,9 +15,7 @@ const { verifyToken,verifyTokenAndAuthorizaton,verifyTokenAndAdmin } = require("
  * @access private
  *
  **/
-router.put("/:id",verifyTokenAndAuthorizaton, async (req, res) => {
-
-
+router.put("/:id", verifyTokenAndAuthorizaton, async (req, res) => {
   const { error } = validateUpdateUser(req.body);
   if (error) {
     return res.status(400).json(error.details[0].message);
@@ -45,13 +48,57 @@ router.put("/:id",verifyTokenAndAuthorizaton, async (req, res) => {
  *
  **/
 
-router.get("/",verifyTokenAndAdmin, async (req,res)=>{
+router.get("/", verifyTokenAndAdmin, async (req, res) => {
   try {
-    const AllUsers = await User.find();
+    const AllUsers = await User.find().select("-password");
     res.status(200).json(AllUsers);
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+/**
+ * @desc  Get User by id
+ * @route /api/user/:id
+ * @method get
+ * @access private (only user and admin) 
+ *
+ **/
+router.get("/:id", verifyTokenAndAuthorizaton, async (req, res) => {
+  // Validate ObjectId before querying
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid User ID" });
+  }
+  // 
+  const user = await User.findById(req.params.id).select("-password");
+  if (!user) {
+    return res.status(404).json({ message: "User Was Not Found" });
+  } else {
+    return res.status(200).json(user);
+  }
+});
+
+/**
+ * @desc  Delete User 
+ * @route /api/user/:id
+ * @method get
+ * @access private (only user and admin) 
+ *
+ **/
+
+router.delete("/:id",verifyTokenAndAuthorizaton,async(req,res)=>{
+  // Validate ObjectId before querying
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid User ID" });
+  }
+  // 
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) {
+    return res.status(404).json({ message: "User Was Not Found" });
+  } else {
+    return res.status(200).json({message: `deleted user : ${user}`});
   }
 })
 module.exports = router;
