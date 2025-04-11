@@ -55,7 +55,7 @@ router.post("/register", async (req, res) => {
     const result = await user.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id,isAdmin: user.isAdmin }, process.env.JWT_SECRET, );
+    const token = user.gnerateToken();
     // { expiresIn: '1h' }
 
     // Exclude password from response
@@ -101,7 +101,7 @@ router.post("/login", loginLimiter, async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id ,isAdmin: user.isAdmin }, process.env.JWT_SECRET, );
+    const token =user.gnerateToken();
     //{ expiresIn: '1h' }
 
     // Exclude password from response

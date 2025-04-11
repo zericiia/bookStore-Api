@@ -1,6 +1,6 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
-
+const jwt = require("jsonwebtoken");
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Generate Token
+userSchema.methods.gnerateToken = function () {
+  return jwt.sign(
+    { id: this._id, isAdmin: this.isAdmin },
+    process.env.JWT_SECRET
+  );
+};
+
 // validate update
 function validateUpdateUser(obj) {
   const schema = Joi.object({
@@ -43,13 +51,13 @@ function validateUpdateUser(obj) {
 }
 // validate Register user
 function validateRegisterUser(obj) {
-    const schema = Joi.object({
-      email: Joi.string().trim().min(5).max(100).required().email(),
-      username: Joi.string().trim().min(2).max(200).required(),
-      password: Joi.string().trim().min(6).required(),
-    });
-    return schema.validate(obj);
-  }
+  const schema = Joi.object({
+    email: Joi.string().trim().min(5).max(100).required().email(),
+    username: Joi.string().trim().min(2).max(200).required(),
+    password: Joi.string().trim().min(6).required(),
+  });
+  return schema.validate(obj);
+}
 // validate Login user
 function validateLoginUser(obj) {
   const schema = Joi.object({
