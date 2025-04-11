@@ -18,9 +18,18 @@ const {
 
 router.get("/", async (req, res) => {
   try {
-    const authorsList = await Author.find();
-    // .select().sort()
-
+    const { pageNumber } = req.query;
+    const authorPerPage = 3;
+    let authorsList;
+    // Pagination
+    if (pageNumber) {
+      authorsList = await Author.find()
+        .skip((pageNumber - 1) * 2)
+        .limit(authorPerPage);
+    } else {
+      authorsList = await Author.find();
+    }
+    // 
     res.status(200).json(authorsList);
   } catch (error) {
     console.log(error);
