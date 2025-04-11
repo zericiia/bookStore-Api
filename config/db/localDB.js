@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
-function ConnectToLocalDB() {
+async function ConnectToLocalDB() {
   try {
-    mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to Local DB successfully");
   } catch (error) {
     console.log(`Failed to connect to MongoDB: ${error}`);
