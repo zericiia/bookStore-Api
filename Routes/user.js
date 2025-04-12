@@ -4,7 +4,6 @@ const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const { User, validateUpdateUser } = require("../models/user");
 const {
-  verifyToken,
   verifyTokenAndAuthorizaton,
   verifyTokenAndAdmin,
 } = require("../middlewares/verifyToken");
