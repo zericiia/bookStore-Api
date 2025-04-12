@@ -1,6 +1,6 @@
 const express = require("express");
 const path = require("path");
-const ConnectToLocalDB = require("./config/db/localDB")
+const {ConnectToLocalDB , ConnectToOnlineDB} = require("./config/db/localDB")
 // mdlw
 const logger = require("./middlewares/logger");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
@@ -9,7 +9,7 @@ require("dotenv").config();
 
 // Connect to MongoDB
 ConnectToLocalDB()
-
+// ConnectToOnlineDB()
 // Initialize app
 const app = express();
 

@@ -1,12 +1,12 @@
 const { Book } = require("./models/Book");
 const { Author } = require("./models/Author");
 const { books, authors } = require("./data");
-const ConnectToLocalDB = require("./config/db/localDB");
+const {ConnectToLocalDB,ConnectToOnlineDB} = require("./config/db/localDB");
 require("dotenv").config();
 
 // connect to DB
 ConnectToLocalDB();
-
+// ConnectToOnlineDB()
 // Insert books
 const ImportBooks = async () => {
   try {
