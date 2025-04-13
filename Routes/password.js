@@ -1,8 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const { getForgetPawssordView } = require("../controllers/forgetPassword");
+const {
+    getForgetPasswordView,
+    sendForgotPasswordLink,
+    getResetPasswordView,
+    ResetPassword
+} = require("../controllers/forgetPassword");
 
+// /password/forget-password                                   password/sendForgotPasswordLink
+router
+  .route("/forget-password")
+  .get(getForgetPasswordView)
+  .post(sendForgotPasswordLink);
 
-// /password/forget-password
-router.route("/forget-password").get(getForgetPawssordView);
+router.route("/reset-password/:id/:token").get(getResetPasswordView).post(ResetPassword)
 module.exports = router;
