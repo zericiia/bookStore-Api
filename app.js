@@ -19,7 +19,8 @@ app.use(express.static(path.resolve(__dirname, "pages")));
 app.use(express.json());
 app.use(logger);
 app.set("view engine", "ejs");
-
+//  allow to send data from the field
+app.use(express.urlencoded({extended:false}))
 // Login route form
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "pages", "login.html"));

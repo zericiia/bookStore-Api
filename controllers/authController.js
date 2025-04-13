@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken"); // Add JWT for token generation
 const {
   User,
   validateLoginUser,
