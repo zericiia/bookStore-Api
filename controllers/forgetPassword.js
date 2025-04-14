@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const { User } = require("../models/user");
+const { User,validateResetPassword } = require("../models/user");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken"); // Add JWT for token generation
@@ -24,14 +24,13 @@ module.exports.sendForgotPasswordLink = async (req, res) => {
   // check user if exist
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
-    return res.status(404).json({ mesasage: "user was not found" });
+    return res.status(404).json({ message: "user was not found" });
   }
 
   try {
     // gen token with pass
-    secret = process.env.JWT_SECRET + user.password;
-    token = jwt.sign({ id: user.id, email: user.email }, secret);
-    
+    const secret = process.env.JWT_SECRET + user.password;
+    const token = jwt.sign({ id: user.id, email: user.email }, secret,{ expiresIn: '15m' });
   } catch (error) {
     console.error("jwt  error:", error);
     res.status(500).json({ message: "An internal server error occurred" });
@@ -52,19 +51,19 @@ module.exports.sendForgotPasswordLink = async (req, res) => {
     subject: "Reset Password",
     html: `<div>
              <h4>Click On The Link To Reset Your Password</h4>
-             <p>${link}</p>
+             <p><a href="${link}">${link}</a></p>
            </div>`,
   };
 
   transporter.sendMail(mailOptions, function (error, success) {
     if (error) {
       console.log(error);
+      res.status(500).json({ message: "something went wrong" });
     } else {
       console.log("Email Sent", success.response);
+      res.render("link-password");
     }
   });
-
-  res.render("link-password");
 };
 
 /**
@@ -79,7 +78,7 @@ module.exports.getResetPasswordView = async (req, res) => {
   // check user if exist
   const user = await User.findById(req.params.id);
   if (!user) {
-    res.status(404).json({ mesasage: "user was not found" });
+    res.status(404).json({ message: "user was not found" });
   }
   const secret = process.env.JWT_SECRET + user.password;
   try {
@@ -99,10 +98,15 @@ module.exports.getResetPasswordView = async (req, res) => {
  *  @access  public
  */
 module.exports.ResetPassword = async (req, res) => {
+  // validate new password
+  const { error } = validateResetPassword(req.body);
+  if (error) {
+    return res.status(400).json(error.details[0].message);
+  }
   // validation
   const user = await User.findById(req.params.id);
   if (!user) {
-    res.status(404).json({ mesasage: "user was not found" });
+    return res.status(404).json({ message: "user was not found" });
   }
   const secret = process.env.JWT_SECRET + user.password;
   try {
@@ -111,7 +115,7 @@ module.exports.ResetPassword = async (req, res) => {
     salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
     user.password = req.body.password;
-    user.save();
+    await user.save();
     res.render("success-password");
   } catch (error) {
     console.error("Database error:", error);
