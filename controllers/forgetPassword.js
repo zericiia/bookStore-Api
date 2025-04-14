@@ -1,7 +1,9 @@
 const asyncHandler = require("express-async-handler");
 const { User } = require("../models/user");
 const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken"); // Add JWT for token generation
+const { link, func } = require("joi");
 /**
  *  @desc    Get forgot password page
  *  @route   /password/forget-password
@@ -29,14 +31,40 @@ module.exports.sendForgotPasswordLink = async (req, res) => {
     // gen token with pass
     secret = process.env.JWT_SECRET + user.password;
     token = jwt.sign({ id: user.id, email: user.email }, secret);
-    res.json(
-      `http://localhost:${process.env.PORT}/password/reset-password/${user.id}/${token}`
-    );
+    
   } catch (error) {
     console.error("jwt  error:", error);
     res.status(500).json({ message: "An internal server error occurred" });
   }
   // TO DO SEND TO EMAIL
+  const link = `http://localhost:${process.env.PORT}/password/reset-password/${user.id}/${token}`;
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.Sender_Email,
+      pass: process.env.Email_App_pass,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.Sender_Email,
+    to: user.email,
+    subject: "Reset Password",
+    html: `<div>
+             <h4>Click On The Link To Reset Your Password</h4>
+             <p>${link}</p>
+           </div>`,
+  };
+
+  transporter.sendMail(mailOptions, function (error, success) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email Sent", success.response);
+    }
+  });
+
+  res.render("link-password");
 };
 
 /**
@@ -76,13 +104,13 @@ module.exports.ResetPassword = async (req, res) => {
   if (!user) {
     res.status(404).json({ mesasage: "user was not found" });
   }
-  const secret = process.env.JWT_SECRET + user.password
+  const secret = process.env.JWT_SECRET + user.password;
   try {
     jwt.verify(req.params.token, secret);
     // reset password
     salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
-    user.password=  req.body.password;
+    user.password = req.body.password;
     user.save();
     res.render("success-password");
   } catch (error) {
