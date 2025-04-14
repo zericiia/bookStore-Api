@@ -15,6 +15,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
   //   Middleware for Image Type Validation
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
@@ -29,9 +30,14 @@ const upload = multer({
 
 // /api/upload
 router.post("/", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    res.status(200).json({ message: "Image uploaded" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error uploading file" });
   }
-  res.status(200).json({ message: "Image uploaded" });
 });
 module.exports = router;
