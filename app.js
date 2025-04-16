@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const { ConnectToLocalDB, ConnectToOnlineDB } = require("./config/db/localDB");
+const cors = require("cors")
 // mdlw
 const logger = require("./middlewares/logger");
 const { notFound, errorHandler } = require("./middlewares/errorHandler");
@@ -13,6 +14,9 @@ ConnectToLocalDB();
 // Initialize app
 const app = express();
 
+app.use(cors({
+  origin:*;
+}));
 // Serve static files from the "pages" directory
 app.use(express.static(path.resolve(__dirname, "pages")));
 const testpath = path.join(__dirname, "pages");
