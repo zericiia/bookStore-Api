@@ -15,8 +15,10 @@ ConnectToLocalDB();
 const app = express();
 
 app.use(cors({
-  origin:*;
+  origin: '*'
 }));
+app.use(helmet());
+
 // Serve static files from the "pages" directory
 app.use(express.static(path.resolve(__dirname, "pages")));
 const testpath = path.join(__dirname, "pages");
